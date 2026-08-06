@@ -888,6 +888,251 @@ main {
   })();
   </script>
 
+  <!-- ===== Apple Health card (from app_state key='health') ===== -->
+  <style>
+    .ah-section { margin-bottom: 32px; }
+    .ah-brand-mark { background:linear-gradient(180deg,#FF7A8A,#E8536A); color:#FFF; box-shadow:0 0 12px rgba(232,83,106,0.35); }
+    .ah-empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:18px 8px 8px; gap:6px; }
+    .ah-empty .wh-brand { margin-bottom:14px; }
+    .ah-empty-title { font-size:22px; font-weight:700; color:var(--text-primary); letter-spacing:-0.02em; margin-top:2px; }
+    .ah-empty-sub { font-size:13px; color:var(--text-tertiary); max-width:300px; line-height:1.5; }
+    .ah-stats { grid-template-columns:repeat(4,1fr); border-top:none; padding-top:0; }
+    @media (max-width:480px) { .ah-stats { grid-template-columns:repeat(2,1fr); } }
+  </style>
+  <div class="ah-section">
+    <div class="section-title">Apple Health</div>
+    <div class="whoop-card">
+      <div id="ahEmpty" class="ah-empty">
+        <div class="wh-brand"><span class="wh-brand-mark ah-brand-mark">♥</span><span class="wh-brand-text">APPLE HEALTH</span></div>
+        <div class="ah-empty-title">No data yet</div>
+        <div class="ah-empty-sub" id="ahEmptySub">Waiting on the first sync from Health Auto Export.</div>
+      </div>
+      <div id="ahConn" style="display:none">
+        <div class="wh-head">
+          <div class="wh-brand">
+            <span class="wh-brand-mark ah-brand-mark">♥</span>
+            <span class="wh-brand-text">APPLE HEALTH</span>
+            <span class="wh-live"><span class="wh-live-dot"></span>synced</span>
+          </div>
+          <div class="wh-head-right">
+            <span id="ahUpdated" class="wh-updated">—</span>
+            <button id="ahRefresh" class="wh-refresh" type="button" aria-label="Refresh"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10"/></svg></button>
+          </div>
+        </div>
+        <div id="ahErr" class="wh-err" style="display:none"></div>
+        <div id="ahStages" class="wh-stages" style="display:none; padding-top:0; border-top:none;">
+          <div class="wh-stages-head"><span class="wh-stages-eye">Sleep stages</span><span class="wh-stages-meta" id="ahStagesMeta">—</span></div>
+          <div class="wh-stages-bar">
+            <div class="wh-stage wh-stage-rem"   id="ahBarRem"   style="width:0%"></div>
+            <div class="wh-stage wh-stage-deep"  id="ahBarDeep"  style="width:0%"></div>
+            <div class="wh-stage wh-stage-light" id="ahBarCore"  style="width:0%"></div>
+            <div class="wh-stage wh-stage-awake" id="ahBarAwake" style="width:0%"></div>
+          </div>
+          <div class="wh-stages-legend">
+            <div class="wh-leg"><span class="wh-leg-dot d-rem"></span>REM<span class="wh-leg-num" id="ahRem">—</span></div>
+            <div class="wh-leg"><span class="wh-leg-dot d-deep"></span>Deep<span class="wh-leg-num" id="ahDeep">—</span></div>
+            <div class="wh-leg"><span class="wh-leg-dot d-light"></span>Core<span class="wh-leg-num" id="ahCore">—</span></div>
+            <div class="wh-leg"><span class="wh-leg-dot d-awake"></span>Awake<span class="wh-leg-num" id="ahAwake">—</span></div>
+          </div>
+        </div>
+        <div class="wh-stats ah-stats">
+          <div class="wh-stat"><span class="wh-zone" id="ahZoneHr"></span><div class="wh-stat-label">Heart rate</div><div class="wh-stat-val" id="ahHr">—</div><div class="wh-stat-sub" id="ahHrSub">bpm</div></div>
+          <div class="wh-stat"><span class="wh-zone" id="ahZoneSleep"></span><div class="wh-stat-label">Sleep</div><div class="wh-stat-val" id="ahSleep">—</div><div class="wh-stat-sub" id="ahSleepSub">—</div></div>
+          <div class="wh-stat"><span class="wh-zone" id="ahZoneHrv"></span><div class="wh-stat-label">HRV</div><div class="wh-stat-val" id="ahHrv">—</div><div class="wh-stat-sub">ms</div></div>
+          <div class="wh-stat"><span class="wh-zone" id="ahZoneSteps"></span><div class="wh-stat-label">Steps</div><div class="wh-stat-val" id="ahSteps">—</div><div class="wh-stat-sub" id="ahStepsSub">today</div></div>
+        </div>
+        <div id="ahBio" class="wh-bio" style="display:none">
+          <div class="wh-bio-item"><span class="wh-zone" id="ahZoneRhr"></span><span class="wh-bio-label">Resting HR</span><span class="wh-bio-val" id="ahRhr">—</span></div>
+          <div class="wh-bio-item"><span class="wh-zone" id="ahZoneResp"></span><span class="wh-bio-label">Resp rate</span><span class="wh-bio-val" id="ahResp">—</span></div>
+          <div class="wh-bio-item"><span class="wh-zone" id="ahZoneSpo2"></span><span class="wh-bio-label">Blood O₂</span><span class="wh-bio-val" id="ahSpo2">—</span></div>
+        </div>
+        <div class="wh-legend">
+          <span class="wh-leg-item"><span class="wh-zone z-good"></span>Good</span>
+          <span class="wh-leg-item"><span class="wh-zone z-norm"></span>Normal</span>
+          <span class="wh-leg-item"><span class="wh-zone z-warn"></span>Watch</span>
+          <span class="wh-leg-item"><span class="wh-zone z-bad"></span>High / Low</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    // Reads the Supabase app_state row where key = 'health'. That row's `data.metrics`
+    // is written by /api/health-webhook from the Health Auto Export iOS app.
+    const SUPABASE_URL = window.DASH_SUPABASE_URL || 'https://srajryooffirbroltjmg.supabase.co';
+    const SUPABASE_KEY = window.DASH_SUPABASE_KEY || 'sb_publishable_5142ZwTLF_DkSVRzciNuRA_bHwRAu4c';
+
+    const $ = (id) => document.getElementById(id);
+
+    // Health Auto Export metric names → the data-point field(s) that hold the value.
+    // Field names differ a little across app versions, so try several.
+    function num(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+    function pick(m, ...fields) {
+      if (!m) return null;
+      for (const f of fields) { const n = num(m[f]); if (n != null) return n; }
+      return null;
+    }
+    function fmtHm(hours) {
+      if (hours == null) return '—';
+      const total = Math.round(hours * 60);
+      return Math.floor(total / 60) + 'h ' + String(total % 60).padStart(2, '0') + 'm';
+    }
+    function zone(el, cls) { if (el) el.className = 'wh-zone' + (cls ? ' ' + cls : ''); }
+    function band(v, good, warn, bad) {
+      // v is compared against ascending cut-offs; null → no dot
+      if (v == null) return '';
+      if (bad != null && v <= bad) return 'z-bad';
+      if (v <= warn) return 'z-warn';
+      if (v < good) return 'z-norm';
+      return 'z-good';
+    }
+    function bandDesc(v, good, warn, bad) {
+      // same, but lower is better
+      if (v == null) return '';
+      if (bad != null && v >= bad) return 'z-bad';
+      if (v >= warn) return 'z-warn';
+      if (v > good) return 'z-norm';
+      return 'z-good';
+    }
+    function ago(iso) {
+      const t = Date.parse(iso);
+      if (!Number.isFinite(t)) return '—';
+      const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+      if (mins < 1) return 'Synced just now';
+      if (mins < 60) return 'Synced ' + mins + 'm ago';
+      const hrs = Math.round(mins / 60);
+      if (hrs < 24) return 'Synced ' + hrs + 'h ago';
+      return 'Synced ' + Math.round(hrs / 24) + 'd ago';
+    }
+
+    function showErr(msg) {
+      const el = $('ahErr');
+      if (!el) return;
+      el.style.display = '';
+      el.textContent = msg;
+    }
+
+    function render(data) {
+      const metrics = (data && data.metrics) || {};
+      if (!Object.keys(metrics).length) {
+        $('ahEmpty').style.display = '';
+        $('ahConn').style.display = 'none';
+        return;
+      }
+      $('ahEmpty').style.display = 'none';
+      $('ahConn').style.display = '';
+
+      $('ahUpdated').textContent = ago(data.last_synced);
+
+      // --- Heart rate (avg, with min–max underneath) ---
+      const hrM = metrics.heart_rate;
+      const hrAvg = pick(hrM, 'Avg', 'avg', 'qty');
+      const hrMin = pick(hrM, 'Min', 'min');
+      const hrMax = pick(hrM, 'Max', 'max');
+      $('ahHr').textContent = hrAvg == null ? '—' : Math.round(hrAvg);
+      $('ahHrSub').textContent = (hrMin != null && hrMax != null)
+        ? Math.round(hrMin) + '–' + Math.round(hrMax) + ' bpm'
+        : 'bpm';
+      zone($('ahZoneHr'), bandDesc(hrAvg, 75, 95, 110));
+
+      // --- Sleep (hours asleep, in-bed underneath) ---
+      const slM = metrics.sleep_analysis;
+      const rem = pick(slM, 'rem', 'REM');
+      const deep = pick(slM, 'deep', 'Deep');
+      const core = pick(slM, 'core', 'Core', 'light');
+      const awake = pick(slM, 'awake', 'Awake');
+      let asleep = pick(slM, 'asleep', 'totalSleep', 'sleepDuration', 'qty');
+      if (asleep == null && (rem != null || deep != null || core != null)) {
+        asleep = (rem || 0) + (deep || 0) + (core || 0);
+      }
+      const inBed = pick(slM, 'inBed', 'inBedDuration');
+      $('ahSleep').textContent = asleep == null ? '—' : fmtHm(asleep);
+      $('ahSleepSub').textContent = inBed == null ? 'asleep' : fmtHm(inBed) + ' in bed';
+      zone($('ahZoneSleep'), band(asleep, 7, 6, 5));
+
+      const stageTotal = (rem || 0) + (deep || 0) + (core || 0) + (awake || 0);
+      if (stageTotal > 0) {
+        $('ahStages').style.display = '';
+        const pct = (v) => ((v || 0) / stageTotal * 100).toFixed(1) + '%';
+        $('ahBarRem').style.width = pct(rem);
+        $('ahBarDeep').style.width = pct(deep);
+        $('ahBarCore').style.width = pct(core);
+        $('ahBarAwake').style.width = pct(awake);
+        $('ahRem').textContent = fmtHm(rem);
+        $('ahDeep').textContent = fmtHm(deep);
+        $('ahCore').textContent = fmtHm(core);
+        $('ahAwake').textContent = fmtHm(awake);
+        $('ahStagesMeta').textContent = fmtHm(stageTotal) + ' in bed';
+      } else {
+        $('ahStages').style.display = 'none';
+      }
+
+      // --- HRV ---
+      const hrv = pick(metrics.heart_rate_variability, 'qty', 'Avg', 'avg');
+      $('ahHrv').textContent = hrv == null ? '—' : Math.round(hrv);
+      zone($('ahZoneHrv'), band(hrv, 50, 30, 20));
+
+      // --- Steps ---
+      const steps = pick(metrics.step_count, 'qty', 'Avg', 'avg');
+      $('ahSteps').textContent = steps == null ? '—' : Math.round(steps).toLocaleString();
+      const stepDate = metrics.step_count && metrics.step_count.date;
+      $('ahStepsSub').textContent = stepDate ? new Date(stepDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'today';
+      zone($('ahZoneSteps'), band(steps, 10000, 4000, 2000));
+
+      // --- Biomarker row ---
+      const rhr = pick(metrics.resting_heart_rate, 'qty', 'Avg', 'avg');
+      const resp = pick(metrics.respiratory_rate, 'qty', 'Avg', 'avg');
+      let spo2 = pick(metrics.blood_oxygen_saturation, 'qty', 'Avg', 'avg');
+      if (spo2 != null && spo2 <= 1) spo2 = spo2 * 100; // some exports send a 0–1 fraction
+
+      if (rhr != null || resp != null || spo2 != null) {
+        $('ahBio').style.display = '';
+        $('ahRhr').textContent = rhr == null ? '—' : Math.round(rhr) + ' bpm';
+        $('ahResp').textContent = resp == null ? '—' : resp.toFixed(1) + ' br/min';
+        $('ahSpo2').textContent = spo2 == null ? '—' : spo2.toFixed(0) + '%';
+        zone($('ahZoneRhr'), bandDesc(rhr, 60, 75, 85));
+        zone($('ahZoneResp'), bandDesc(resp, 16, 20, 24));
+        zone($('ahZoneSpo2'), band(spo2, 95, 92, 90));
+      } else {
+        $('ahBio').style.display = 'none';
+      }
+    }
+
+    async function load(supa) {
+      try {
+        const { data, error } = await supa
+          .from('app_state').select('data').eq('key', 'health').maybeSingle();
+        if (error) throw new Error(error.message);
+        render(data && data.data);
+      } catch (e) {
+        showErr(e.message || String(e));
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!window.supabase || !SUPABASE_URL || !SUPABASE_KEY) {
+        $('ahEmptySub').textContent = 'Supabase is not configured, so health metrics cannot be loaded.';
+        return;
+      }
+      const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      load(supa);
+
+      $('ahRefresh').addEventListener('click', function () {
+        this.classList.add('spin');
+        setTimeout(() => this.classList.remove('spin'), 500);
+        load(supa);
+      });
+
+      // Live-update when the webhook writes a new payload.
+      supa.channel('app_state_health_metrics')
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'app_state', filter: 'key=eq.health',
+        }, (payload) => { if (payload.new && payload.new.data) render(payload.new.data); })
+        .subscribe();
+    });
+  })();
+  </script>
+
   <div class="section-title">Daily Stack</div>
 
   <div class="stack-card">

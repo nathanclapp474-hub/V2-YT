@@ -32,6 +32,10 @@
     let pushTimer = null;
     let suppressSync = false;
     let lastSyncedJson = null;
+    // Keys present in the remote row that this page does NOT mirror from
+    // localStorage (e.g. the `metrics` blob /api/health-webhook writes into
+    // key='health'). Carried through on every push so we don't clobber them.
+    let remoteExtras = {};
 
     function matches(k) {
       if (!k) return false;
@@ -70,8 +74,18 @@
       try { if (!suppressSync && matches(k)) schedulePush(); } catch (e) {}
     };
 
+    function captureExtras(remote) {
+      const out = {};
+      if (!remote || typeof remote !== 'object') return out;
+      for (const k of Object.keys(remote)) {
+        if (!matches(k)) out[k] = remote[k];
+      }
+      return out;
+    }
+
     function applyRemote(remote) {
       if (!remote || typeof remote !== 'object') return false;
+      remoteExtras = captureExtras(remote);
       suppressSync = true;
       let changed = false;
       try {
@@ -102,7 +116,7 @@
       if (json === lastSyncedJson) return;
       try {
         const { error } = await supa.from('app_state').upsert(
-          { key: appKey, data: state, updated_at: new Date().toISOString() },
+          { key: appKey, data: { ...remoteExtras, ...state }, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         );
         if (!error) lastSyncedJson = json;
@@ -125,7 +139,7 @@
             'Content-Type': 'application/json',
             'Prefer': 'resolution=merge-duplicates',
           },
-          body: JSON.stringify({ key: appKey, data: state, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ key: appKey, data: { ...remoteExtras, ...state }, updated_at: new Date().toISOString() }),
           keepalive: true,
         }).catch(() => {});
         lastSyncedJson = json;
